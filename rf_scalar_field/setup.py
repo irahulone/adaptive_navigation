@@ -22,7 +22,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'rf_source = rf_scalar_field.rf_source:main'
+            'rf_source = rf_scalar_field.rf_source:main',
+            'rf_receiver = rf_scalar_field.rf_receiver:main'
         ],
     },
 )
