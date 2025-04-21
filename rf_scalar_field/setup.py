@@ -11,7 +11,9 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
     ],
-    install_requires=['setuptools'],
+    install_requires=[
+        'setuptools'
+        'digi-xbee'],
     zip_safe=True,
     maintainer='christian',
     maintainer_email='cpedrigal@scu.edu',
@@ -20,6 +22,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'rf_source = rf_scalar_field.rf_source:main'
         ],
     },
 )
