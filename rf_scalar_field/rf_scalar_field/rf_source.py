@@ -8,7 +8,7 @@ from digi.xbee.models.address import XBee64BitAddress
 import time
 
 # Replace with your actual serial port and baud rate
-PORT = "/dev/ttyUSB0"  # For Windows: "COM3"
+PORT = "/dev/ttyUSB2"  # For Windows: "COM3"
 BAUD_RATE = 9600
 
 # This is the 64-bit broadcast address
@@ -49,7 +49,6 @@ class MinimalPublisher(Node):
         self.i += 1
 
 
-def main2(args=None):
 
 	# Initialize ros client library
     rclpy.init(args=args)
