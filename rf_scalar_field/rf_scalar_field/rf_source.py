@@ -9,77 +9,21 @@ import time
 
 # Replace with your actual serial port and baud rate
 PORT = "/dev/ttyUSB2"  # For Windows: "COM3"
-BAUD_RATE = 9600
-
-# This is the 64-bit broadcast address
-BROADCAST_ADDRESS = XBee64BitAddress.BROADCAST_ADDRESS
-
+BAUD_RATE = 115200
 device = XBeeDevice(PORT, BAUD_RATE)
-
-class MinimalPublisher(Node):
-
-    def __init__(self):
-		    
-		# Create node called "minimal_publisher"
-        super().__init__('minimal_publisher')
-        
-        # Assign publisher functionality for a topic named 'topic'
-        self.publisher_ = self.create_publisher(String, 'topic', 10)
-        
-        # Have a publisher create a timer
-        timer_period = 0.5  # seconds
-        self.timer = self.create_timer(timer_period, self.timer_callback)
-        
-        # Additional stuff
-        self.i = 0
-
-    def timer_callback(self):
-    
-		    # Create a `String` msg instance and change .data attribute
-        msg = String()
-        msg.data = 'Hello World: %d' % self.i
-        
-        # Send message
-        self.publisher_.publish(msg)
-        
-        # Log this onto console
-        self.get_logger().info('Publishing: "%s"' % msg.data)
-        
-        # Iterate additional stuff
-        self.i += 1
-
-
-
-	# Initialize ros client library
-    rclpy.init(args=args)
-
-	# Create publisher node
-    minimal_publisher = MinimalPublisher()
-		
-	# Continuously blocking poll
-    rclpy.spin(minimal_publisher)
-
-    # Destroy the node explicitly
-    # (optional - otherwise it will be done automatically
-    # when the garbage collector destroys the node object)
-    minimal_publisher.destroy_node()
-    rclpy.shutdown()
+period = 0.1
 
 def main(args=None):
 
     try:
         device.open()
 
-        # Create a broadcast RemoteXBeeDevice (optional step)
-        broadcast_device = RemoteXBeeDevice(device, BROADCAST_ADDRESS)
-
-        print("Broadcasting messages every 1 second...")
-
+        print(f"Broadcasting messages every {period} second...")
         while True:
             message = "Hello from broadcast!"
-            device.send_data(broadcast_device, message)
+            device.send_data_broadcast(message)
             print(f"Sent broadcast: {message}")
-            time.sleep(1)
+            time.sleep(period)
 
     except Exception as e:
         print(f"Error: {e}")
