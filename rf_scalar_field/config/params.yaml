@@ -1,0 +1,11 @@
+rf_receiver:
+  ros__parameters:
+    port: "/dev/ttyUSB1"
+    baud_rate: 115200
+    freq: 1.0
+
+rf_source:
+  ros__parameters:
+    port: "/dev/ttyUSB2"
+    baud_rate: 115200
+    freq: 1.0
