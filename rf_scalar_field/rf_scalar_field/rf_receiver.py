@@ -1,10 +1,19 @@
 import rclpy
 from rclpy.node import Node
 
+from std_msgs.msg import String
+from std_msgs.msg import Int16
+
 from digi.xbee.devices import XBeeDevice, XBee64BitAddress
-from typing import Any, Union, Callable, Optional
+from typing import Any, Union, Callable, Optional, Tuple
 
 from time import time
+from random import randrange
+
+
+from adaptive_navigation_utilities.pubsub import PubSubManager
+from adaptive_navigation_utilities.namespace_builder import HardwareNamespace
+
 
 
 # Global variables
@@ -22,6 +31,8 @@ class RFReceiver(Node):
     PORT: str = 'port'
     BAUD_RATE: str = 'baud_rate'
     FREQ: str = 'freq'
+    PUB_TOPIC: str = 'pub_topic'
+    RANGE_FAKE_RSSI: Tuple[int] = (-100, -10)
 
 
     def __init__(self, func: Callable = None):
@@ -31,7 +42,10 @@ class RFReceiver(Node):
         # parse for the file name to use as
         # the node name
         super().__init__(__name__.split('.')[-1])
-
+    
+        # Get namespace
+        self.ns: HardwareNamespace = HardwareNamespace(self.get_namespace())
+    
         # Declare parameters provided with default params
         # if not using ros2 launch
         self.declare_parameters(
@@ -39,9 +53,14 @@ class RFReceiver(Node):
             parameters=[
                 (RFReceiver.PORT, "/dev/ttyUSB1"),
                 (RFReceiver.BAUD_RATE, 115200),
-                (RFReceiver.FREQ, 0.5)
+                (RFReceiver.FREQ, 0.5),
+                (RFReceiver.PUB_TOPIC, 'rssi')
             ]
         )
+
+        # Create PubSubManager
+        self.pubsub: PubSubManager = PubSubManager(self)
+
 
         # Set attributes from parameters
         # Note: Parameters are at the node level
@@ -62,33 +81,62 @@ class RFReceiver(Node):
         self.info: Callable = self.log().info
         self.warn: Callable = self.log().warn
         self.error: Callable = self.log().error
+    
+        self.info(f"Namespace: {self.ns.namespace}")
+        
+        # Check if sim
+        self.info(f"Is in sim mode: {self.ns.is_simulation}")
+
+        # Create publish topics
+        self.create_publish_topics()
 
         if DEBUG: print(self.port)
 
-        # Initialize XBee Device
-        self.device: XBeeDevice = self.xbee_init()
+        # If not simulation
+        if not self.ns.is_simulation:
 
-        # Open the device
-        self.device.open()
-        if DEBUG: print("Device is opening...")
+            # Initialize XBee Device
+            self.device: XBeeDevice = self.xbee_init()
 
-        # Add attribute for callback
-        if func is None:
-            self.callback_func: Callable = \
-                self.get_rssi_from_received_msg
+            # Open the device
+            self.device.open()
+            if DEBUG: print("Device is opening...")
+
+            # Add attribute for callback
+            if func is None:
+                self.callback_func: Callable = \
+                    self.get_rssi_from_received_msg
+            else:
+                self.callback_func: Callable = func
+
+            # Add callback to msg
+            self.add_data_received_callback(self.callback_func)
+
+            # Add poll timer
+            self.create_timer(self.period, self.wait)
+
         else:
-            self.callback_func: Callable = func
 
-        # Add callback to msg
-        self.add_data_received_callback(self.callback_func)
+            # Add poll timer
+            self.create_timer(self.period, 
+                              self.get_fake_rssi_from_received_msg)
+        
 
-        # Add poll timer
-        self.create_timer(self.period, self.wait)
 
 
     @property
     def period(self) -> Numeric:
         return 1/self.freq
+
+    # Create publish topics
+    def create_publish_topics(self) -> None:
+
+        # Create publish topic of message
+        self.pubsub.create_publisher(
+            Int16,
+            self.get(RFReceiver.PUB_TOPIC),
+            10
+        )
 
     # Crete alias function for common ROS functions
     def get(self, param) -> Any:
@@ -112,7 +160,7 @@ class RFReceiver(Node):
         else:
             return None
     
-    def get_rssi_from_received_msg(self, message):
+    def get_rssi_from_received_msg(self, message) -> None:
 
         # Extract data from received message
         self.msg = message.data.decode()
@@ -135,6 +183,12 @@ class RFReceiver(Node):
             # Get rssi
             self.rssi = self.update_rssi()
             self.info(f"RSSI of last message: {self.rssi}")
+            
+            # Publish data
+            self.pubsub.publish(
+                self.get(RFReceiver.PUB_TOPIC),
+                Int16(data=self.rssi)
+            )
 
         except Exception as e:
             self.error(f"Error receiving RSSI: {e}")
@@ -145,12 +199,30 @@ class RFReceiver(Node):
             if self.device is not None and self.device.is_open():
                 self.device.close()
             
-    def wait(self):
+    def get_fake_rssi_from_received_msg(self) -> None:
+
+        # Update fake rssi
+        self.rssi = randrange(
+                    RFReceiver.RANGE_FAKE_RSSI[0],
+                    RFReceiver.RANGE_FAKE_RSSI[1]
+                        )
+        
+        # Log rssi
+        self.info(f"RSSI: {self.rssi}")
+
+        # Publish fake data
+        self.pubsub.publish(
+            self.get(RFReceiver.PUB_TOPIC),
+            Int16(data=self.rssi)
+        )
+
+
+    def wait(self) -> None:
         if not self.device.is_open():
             self.device.open()
         self.debug(f"Heartbeat at {time()}")
     
-    def poll_device(self):
+    def poll_device(self) -> None:
         if not self.device.is_open():
             self.device.open()
         try:

@@ -8,4 +8,8 @@ rf_source:
   ros__parameters:
     port: "/dev/ttyUSB2"
     baud_rate: 115200
-    freq: 1.0
+    freq: 1.0       
+
+sim_lat_long:
+  ros__parameters:
+    freq: 5.0

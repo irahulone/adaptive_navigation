@@ -27,7 +27,8 @@ setup(
     entry_points={
         'console_scripts': [
             'rf_source = rf_scalar_field.rf_source:main',
-            'rf_receiver = rf_scalar_field.rf_receiver:main'
+            'rf_receiver = rf_scalar_field.rf_receiver:main',
+            'sim_lat_long = rf_scalar_field.sim_lat_long:main'
         ],
     },
 )
