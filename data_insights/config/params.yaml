@@ -1,0 +1,4 @@
+test_module:
+
+  ros__parameters:
+    package: data_insights
