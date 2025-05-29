@@ -1,4 +1,4 @@
-from pydantic import BaseModel, RootModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional, Dict, Any
 
 class BaseTopic(BaseModel):
@@ -16,11 +16,7 @@ class TopicGroup(BaseModel):
     publishers: Optional[List[PublisherTopic]] = None
     subscribers: Optional[List[SubscriberTopic]] = None
 
-# class NodeConfig(BaseModel):
-#     topics: Optional[TopicGroup] = None
-
-# class BaseRosConfig(RootModel[Dict[str, NodeConfig]]):
-#     pass
-
 class BaseRosConfig(BaseModel):
+    model_config = ConfigDict(extra="allow") 
+    extra: Optional[Dict[str, Any]] = None
     topics: Optional[TopicGroup] = None

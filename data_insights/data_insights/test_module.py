@@ -27,7 +27,14 @@ class TestNode(NodeWrapper):
         # Print if namespace
         print(f"Is simulation?: {self.ns.is_simulation}")
 
+        print(f"Configs: {dict(self.config.extra)}")
+        print(f"Robot id: {self.config.extra["robot_id"]}")
 
+
+    def print_sim_hi(self, msg):
+        print("sim hi")
+
+    @NodeWrapper.alternate_sim_func(print_sim_hi)
     def print_hi(self, msg):
         print("hi")
 

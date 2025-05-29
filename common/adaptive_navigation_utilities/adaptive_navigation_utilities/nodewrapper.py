@@ -174,6 +174,10 @@ class NodeWrapper(Node):
         # Process config into template and access node directly
         self.config = BaseRosConfig.model_validate(config_dict)
 
+        # Put remaining config params into config.extra
+        self.config.extra = defaultdict(lambda: None,
+                                self.config.model_extra)
+
 
     @requires_config
     def create_publish_topics(self) -> None:

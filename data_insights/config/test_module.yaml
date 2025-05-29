@@ -14,3 +14,5 @@ topics:
       qos: 10
       frequency: 5.0
       callback: "print_hi"
+
+robot_id: r1
