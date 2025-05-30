@@ -1,5 +1,6 @@
 import rclpy
 from rclpy.node import Node
+from rcl_interfaces.msg import SetParametersResult
 
 from std_msgs.msg import String, Int16
 
@@ -60,11 +61,11 @@ class RFSource(Node):
         self.declare_parameters(
             namespace='',
             parameters=[
-                (RFSource.PORT, "/dev/ttyUSB2"),
+                (RFSource.PORT, "/dev/ttyUSB0"),
                 (RFSource.BAUD_RATE, 115200),
                 (RFSource.FREQ, 0.5),
                 (RFSource.PUB_TOPIC, "message"),
-                (RFSource.POWER_LEVEL, self.qualify_power_level()),
+                (RFSource.POWER_LEVEL, 0),
                 (RFSource.POWER_PUB_TOPIC, "power_level")
             ]
         )
@@ -75,7 +76,6 @@ class RFSource(Node):
         self.port: str = self.get(RFSource.PORT)
         self.baud_rate: str = self.get(RFSource.BAUD_RATE)
         self.freq: int = self.get(RFSource.FREQ)
-
         
         # Check if sim
         self.info(f"Is in sim mode: {self.ns.is_simulation}")
@@ -85,36 +85,37 @@ class RFSource(Node):
 
         if DEBUG: print(self.port)
 
-        if DEBUG:
-            self.get_power_level()
 
 
         # Initialize XBee Device
         self.device: XBeeDevice = self.xbee_init()
 
+        # Set power level of device
+        self.set_power_level(self.get(RFSource.POWER_LEVEL))
+
         # Add a callback fcn in ROS per timer
-        self.timer = self.create_timer(self.period, self.send_data_broadcast)
+        # self.timer = self.create_timer(self.period, self.send_data_broadcast)
+        self.timer2 = self.create_timer(10, self.get_power_level )
 
-        # Add callback if there is any change in ROS parameters
-        self.add_on_set_parameters_callback(self.update_power_level)
+        self.add_on_set_parameters_callback(self.parameters_callback)
 
-        # # If not simulation, use the node
-        # if not self.ns.is_simulation:
+    # Add callback if there is any change in ROS parameters
+    # TODO: Fix hardcoding
+    def parameters_callback(self, params):
 
-        #     # Initialize XBee Device
-        #     self.device: XBeeDevice = self.xbee_init()
+        self.info("Performing parameters callback update")
+        for p in params:
+            if p.name == RFSource.POWER_LEVEL:
 
-        #     # Open the device
-        #     self.device.open()
-        #     if DEBUG: print("Device is opening...")
+                self.info(f"Updating {RFSource.POWER_LEVEL} with {p.value}")
 
-        #     # Add a callback fcn in ROS per timer
-        #     self.timer = self.create_timer(self.period, self.send_data_broadcast)
+                # Update power level
+                self.set_power_level(p.value)
 
-        # else:
+            if p == RFSource.PORT:
+                self.port = self.get(RFSource.PORT)
 
-        #     self.timer = self.create_timer(self.period, self.send_fake_data_broadcast)
-
+        return SetParametersResult(successful=True)
 
     def non_simulation(func: Callable):
         @wraps(func)
@@ -140,19 +141,22 @@ class RFSource(Node):
             return wrapper
         return decorator
 
-    @property
-    def pl(self) -> int:
+    # @property
+    # def pl(self) -> int:
         
-        return self.get_power_level()
+    #     # TODO: Reduce if using either:
+    #     # self.pl vs self.get_power_level() vs self.get()
+    #     return self.get(RFSource.POWER_LEVEL)
     
-    @pl.setter
-    def pl(self, val) -> int:
+    # @pl.setter
+    # def pl(self, val) -> int:
         
-        # Check if correct power level
-        self.qualify_power_level(val)
+    #     # Check if correct power level
+    #     self.qualify_power_level(val)
 
-        # Set power level
-        self.set_power_level(val)
+    #     # Set power level
+    #     print("hi")
+    #     self.set_power_level(val)
 
     @property
     def period(self) -> Numeric:
@@ -175,16 +179,16 @@ class RFSource(Node):
             10
         )
 
-    # TODO: Consider alternatives to ROS params
-    # TODO: Fix hard-coding
-    def update_power_level(self, params) -> None:
+    # # TODO: Consider alternatives to ROS params
+    # # TODO: Fix hard-coding
+    # def update_power_level(self, params) -> None:
         
-        for param in params:
+    #     for param in params:
 
-            if param == RFSource.POWER_PUB_TOPIC and param != self.pl:
+    #         if param == RFSource.POWER_PUB_TOPIC and param != self.pl:
 
-                # Set param
-                self.pl = param
+    #             # Set param
+    #             self.pl = param
 
 
     # Create alias function for common ROS functions
@@ -203,6 +207,12 @@ class RFSource(Node):
         # Open the device
         self.device.open()
         if DEBUG: print("Device is opening...")
+
+        if self.device.is_open():
+            print("Hooray!")
+            print(self.device)
+        
+        return self.device
     
     def send_fake_data_broadcast(self, msg: str = 'Hello world!') -> None:
 
@@ -225,7 +235,7 @@ class RFSource(Node):
                 self.device.open()
 
             # Send broadcast message
-            self.debug(f"Sending message: {msg}")
+            self.info(f"Sending message: {msg}")
             self.device.send_data_broadcast(msg)
 
             # Publish message
@@ -246,48 +256,96 @@ class RFSource(Node):
             if self.device is not None and self.device.is_open():
                 self.device.close()
     
-   
-    def qualify_power_level(self, x: int = 0) -> int:
+    def set_fake_power_level(self, val):
 
-        if x not in set([0, 1, 2, 3, 4]):
-            return ValueError
+        if hasattr(self, "pl"):
+            self.info(f"Current power level {self.pl}")
+
+        # Check if invalid power level
+        if self.qualify_power_level(val):
+
+            self.info(f"Setting fake power val to {val}")
+            self.pl = val
+   
+    def qualify_power_level(self, val):
+
+        self.info(f"Power level to be qualified: {val}")
+
+        if val not in [0, 1, 2, 3, 4]:
+            self.error("Incorrect power level. Must be from 0 to 4")
+            return False
         else:
-            self.info(f"Returning {x} as power level")
-            return x
+            if hasattr(self, "pl"):
+                self.info(f"Returning {self.pl} as power level")
+            return True
+
+    def get_fake_power_level(self):
+        if hasattr(self, "pl"):
+            self.info(f"Fake power val: {self.pl}")
+ 
 
     # This cannot be a property because
     # it actively performs an action 
     # and retrieves a value
-    @alternate_sim_func(qualify_power_level)
+    @alternate_sim_func(get_fake_power_level)
     @non_simulation
     def get_power_level(self):
+
+        # If the device is not already open, open it
+        if not self.device.is_open():
+                self.device.open()
+
         self.info("Accessing power level!")
 
         # Get power level
         pl_raw = self.device.get_parameter("PL")
+
         if pl_raw is None:
             self.error("Failed to read power level.")
 
-            self._pl = None
-            return None
-        else:
-            self._pl = int.from_bytes(pl_raw, "big")
+            self.pl = None
 
-        return self.pl
-    
-    @alternate_sim_func(qualify_power_level)
+            return None
+        
+        else:
+            self.pl = int.from_bytes(pl_raw, "big")
+            self.info(f"Current power level {self.pl}")
+        
+        # Close device if caught exception
+        if self.device is not None and self.device.is_open():
+            self.device.close()
+
+        return
+
+
+    @alternate_sim_func(set_fake_power_level)
     @non_simulation
     def set_power_level(self, level) -> bool:
 
-        response = self.device.send_at_command("PL", bytes([level]))
-        if response is None:
-            self.error("Failed to set power level.")
+        # Check if invalid power level
+        if not self.qualify_power_level(level):
+            return
+
+        # If the device is not already open, open it
+        if not self.device.is_open():
+            self.device.open()
+
+        try:
+            level = int(level)  # Convert to int if it’s a string like "3"
+        except ValueError:
+            print(f"Invalid input: level must be an integer, got {level}")
             return False
-        else:
+
+        try:
+            self.device.set_parameter("PL", bytes([level]))
             self.info(f"Set power level to {level}")
+            self.pl = level
             return True
+        except Exception as e:
+            self.error(f"Failed to set power level: {e}")
+            return False
 
-
+        
         
 
 def main(args=None):
