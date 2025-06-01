@@ -94,7 +94,9 @@ class RFSource(Node):
         self.set_power_level(self.get(RFSource.POWER_LEVEL))
 
         # Add a callback fcn in ROS per timer
-        # self.timer = self.create_timer(self.period, self.send_data_broadcast)
+        self.timer = self.create_timer(self.period, self.send_data_broadcast)
+
+        # TODO: Fix the naming
         self.timer2 = self.create_timer(10, self.get_power_level )
 
         self.add_on_set_parameters_callback(self.parameters_callback)
@@ -112,8 +114,9 @@ class RFSource(Node):
                 # Update power level
                 self.set_power_level(p.value)
 
-            if p == RFSource.PORT:
-                self.port = self.get(RFSource.PORT)
+            if p.name == RFSource.PORT:
+                self.info(f"Changing port to {p.value}")
+                self.port = p.value
 
         return SetParametersResult(successful=True)
 
