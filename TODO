@@ -4,7 +4,8 @@
 
 **Add Adaptive Navigation Controller**
 
-- add `git/adaptive_navigation` into the `git/multi_robots` repo
+- (DONE) add `git/adaptive_navigation` into the `git/multi_robots` repo
+- (DONE) set up topics for the several nodes (Ricky)
 
 **Updating the RF Source Node**
 
@@ -14,6 +15,10 @@
 **Update the Live Contour Plotter Node**
 
 - Implement save figure button (bonus)
+- Fix axes
+
+**Create offline plotting Node**
+- For playback we so we can replot based from the raw data
 
 **Update the RF Receiver**
 
@@ -21,4 +26,5 @@
 
 **Testing**
 
-- Record at different heights and power levels
+- (DONE) Record at different heights and power levels
+- After plotting, how to put the rosbag into correct file location automatically
