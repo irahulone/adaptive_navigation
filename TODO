@@ -1,0 +1,24 @@
+**Time Sychronization**
+
+- time synchronization —> use battery clock provided by Raspberry Pi
+
+**Add Adaptive Navigation Controller**
+
+- add `git/adaptive_navigation` into the `git/multi_robots` repo
+
+**Updating the RF Source Node**
+
+- Create another topic reporting the actual publish rate
+- Create another topic reporting the height of the source
+
+**Update the Live Contour Plotter Node**
+
+- Implement save figure button (bonus)
+
+**Update the RF Receiver**
+
+- Implement for receiving from multiple nodes
+
+**Testing**
+
+- Record at different heights and power levels
