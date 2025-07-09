@@ -1,0 +1,30 @@
+**Time Sychronization**
+
+- time synchronization —> use battery clock provided by Raspberry Pi
+
+**Add Adaptive Navigation Controller**
+
+- (DONE) add `git/adaptive_navigation` into the `git/multi_robots` repo
+- (DONE) set up topics for the several nodes (Ricky)
+
+**Updating the RF Source Node**
+
+- Create another topic reporting the actual publish rate
+- Create another topic reporting the height of the source
+
+**Update the Live Contour Plotter Node**
+
+- Implement save figure button (bonus)
+- Fix axes
+
+**Create offline plotting Node**
+- For playback we so we can replot based from the raw data
+
+**Update the RF Receiver**
+
+- Implement for receiving from multiple nodes
+
+**Testing**
+
+- (DONE) Record at different heights and power levels
+- After plotting, how to put the rosbag into correct file location automatically
