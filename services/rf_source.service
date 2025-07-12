@@ -1,0 +1,18 @@
+[Unit]
+Description=RF Source on ROS2
+After=network.target
+
+[Service]
+# Script
+ExecStart=/opt/rf_source.bash
+
+# If your script includes $HOME or $USER then add these
+User=$USER
+Environment=HOME=$HOME
+
+# Behavior
+Type=simple
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
