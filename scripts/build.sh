@@ -13,7 +13,7 @@ HEREDOC
 
 # Variables
 SYSTEMD_PATH=/etc/systemd/system
-ROS_WS=robot_ws
+ROS_WS=ros2_ws
 AUTO_ACCEPT=1
 VERBOSE=0
 

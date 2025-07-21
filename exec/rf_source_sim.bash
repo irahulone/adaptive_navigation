@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Variables
-WORKSPACE_DIR=robot_ws
+WORKSPACE_DIR=ros2_ws
 REPO=adaptive_navigation
 PACKAGE=rf_scalar_field
 NODE=rf_source
