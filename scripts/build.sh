@@ -62,6 +62,13 @@ else
     fi
 fi
 
+# Stop services
+read -e -p "Stop services? [Y/n] " -i "Y" answer
+echo $answer
+if [[ $answer = Y ]]; then
+    bash $PROJECT_DIR/scripts/stop.sh
+fi
+
 # Run services
 read -e -p "Run services? [Y/n] " -i "Y" answer
 echo $answer
