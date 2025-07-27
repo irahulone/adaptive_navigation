@@ -4,7 +4,8 @@ from rcl_interfaces.msg import SetParametersResult
 
 from std_msgs.msg import String, Int16
 
-from digi.xbee.devices import XBeeDevice
+from digi.xbee.devices import XBeeDevice, RemoteXBeeDevice
+from digi.xbee.models.address import XBee64BitAddress
 from typing import Any, Union, Callable
 
 from functools import wraps
@@ -15,7 +16,7 @@ from adaptive_navigation_utilities.namespace_builder import HardwareNamespace
 
 # Global variables
 Numeric = Union[int, float]
-DEBUG: bool = True
+DEBUG: bool = False
 
 
 class RFSource(Node):
@@ -63,7 +64,7 @@ class RFSource(Node):
             parameters=[
                 (RFSource.PORT, "/dev/ttyUSB0"),
                 (RFSource.BAUD_RATE, 115200),
-                (RFSource.FREQ, 5),
+                (RFSource.FREQ, 0.5),
                 (RFSource.PUB_TOPIC, "message"),
                 (RFSource.POWER_LEVEL, 0),
                 (RFSource.POWER_PUB_TOPIC, "power_level")
@@ -92,12 +93,14 @@ class RFSource(Node):
 
         # Set power level of device
         self.set_power_level(self.get(RFSource.POWER_LEVEL))
-
+        
+        self.get_logger().info(f"Period of {self.period}")
         # Add a callback fcn in ROS per timer
         self.timer = self.create_timer(self.period, self.send_data_broadcast)
 
-        # TODO: Fix the naming
-        self.timer2 = self.create_timer(10, self.get_power_level )
+        # Getting Power slows down broadcast so only use in DEBUG
+        if DEBUG: 
+            self.timer2 = self.create_timer(10, self.get_power_level )
 
         self.add_on_set_parameters_callback(self.parameters_callback)
 
@@ -237,9 +240,14 @@ class RFSource(Node):
             if not self.device.is_open():
                 self.device.open()
 
+            broadcast_remote = RemoteXBeeDevice(self.device, XBee64BitAddress.BROADCAST_ADDRESS)
             # Send broadcast message
             self.info(f"Sending message: {msg}")
-            self.device.send_data_broadcast(msg)
+            self.device.send_data_async(
+                remote_xbee=broadcast_remote,
+                data=msg,
+                transmit_options=0x00
+            )
 
             # Publish message
             self.pubsub.publish(
@@ -248,12 +256,9 @@ class RFSource(Node):
             )
 
         except Exception as e:
-
-            # Print error
             print(f"Error: {e}")
             return False
-    
-    
+
     def set_fake_power_level(self, val):
 
         if hasattr(self, "pl"):
@@ -289,30 +294,28 @@ class RFSource(Node):
     @non_simulation
     def get_power_level(self):
 
-        # If the device is not already open, open it
-        if not self.device.is_open():
-                self.device.open()
+        if self.device is None or not self.device.is_open():
+            return
 
         self.info("Accessing power level!")
+        try:
+            # Get power level
+            pl_raw = self.device.get_parameter("PL")
 
-        # Get power level
-        pl_raw = self.device.get_parameter("PL")
+            if pl_raw is None:
+                self.error("Failed to read power level.")
 
-        if pl_raw is None:
-            self.error("Failed to read power level.")
+                self.pl = None
 
-            self.pl = None
-
-            return None
+                return None
         
-        else:
-            self.pl = int.from_bytes(pl_raw, "big")
-            self.info(f"Current power level {self.pl}")
-    
-
-        return
-
-
+            else:
+                self.pl = int.from_bytes(pl_raw, "big")
+                self.info(f"Current power level {self.pl}")
+        
+        except Exception as e:
+            print("Error in get power level: {e}")
+            return None
     @alternate_sim_func(set_fake_power_level)
     @non_simulation
     def set_power_level(self, level) -> bool:
