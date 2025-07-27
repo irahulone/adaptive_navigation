@@ -6,7 +6,7 @@ from std_msgs.msg import String, Int16
 
 from digi.xbee.devices import XBeeDevice, RemoteXBeeDevice
 from digi.xbee.models.address import XBee64BitAddress
-from typing import Any, Union, Callable
+from typing import Any, Union, Callable, List
 
 from functools import wraps
 
@@ -34,6 +34,7 @@ class RFSource(Node):
     PUB_TOPIC: str = "topicname/msg"
     POWER_PUB_TOPIC: str = "power_level_topic_name"
     POWER_LEVEL: str = "power_level"
+    LIST_OF_END_DEVICES_ADDR: str = "list_of_end_devices"
     
     def __init__(self) -> None:
 
@@ -63,10 +64,16 @@ class RFSource(Node):
             namespace='',
             parameters=[
                 (RFSource.PORT, "/dev/ttyUSB0"),
+                (RFSource.LIST_OF_END_DEVICES_ADDR, ["0013A2004236A91", # End Device 1
+                                                "0013A20042646524", # End Device 2
+                                                "0013A2004264607C", # End Device 3
+                                                # "0013A20042645E8A", # End Device 4
+                                                # "0013A20042645E87"  # End Device 5
+                                                ]),
                 (RFSource.BAUD_RATE, 115200),
-                (RFSource.FREQ, 5),
+                (RFSource.FREQ, 2),
                 (RFSource.PUB_TOPIC, "message"),
-                (RFSource.POWER_LEVEL, 0),
+                (RFSource.POWER_LEVEL, 4),
                 (RFSource.POWER_PUB_TOPIC, "power_level")
             ]
         )
@@ -77,6 +84,7 @@ class RFSource(Node):
         self.port: str = self.get(RFSource.PORT)
         self.baud_rate: str = self.get(RFSource.BAUD_RATE)
         self.freq: int = self.get(RFSource.FREQ)
+        self.list_of_end_devices_addr: List[str] = self.get(RFSource.LIST_OF_END_DEVICES_ADDR)
         
         # Check if sim
         self.info(f"Is in sim mode: {self.ns.is_simulation}")
@@ -210,6 +218,9 @@ class RFSource(Node):
     def xbee_init(self) -> None:
         self.device: XBeeDevice = XBeeDevice(self.port, self.baud_rate)
 
+        # Initialize list of remote xbee devices
+        self.create_remote_xbee_devices()
+
         # Open the device
         self.device.open()
         if DEBUG: print("Device is opening...")
@@ -220,6 +231,17 @@ class RFSource(Node):
         
         return self.device
     
+    def create_remote_xbee_devices(self) -> None:
+        
+        if len(self.list_of_end_devices_addr) > 0:
+
+            self.list_of_end_devices = [
+                RemoteXBeeDevice(self.device, XBee64BitAddress.from_hex_string(addr)) \
+                                                for addr in self.list_of_end_devices_addr]
+        else:
+            self.list_of_end_devices_addr = \
+                    [RemoteXBeeDevice(self.device, XBee64BitAddress.BROADCAST_ADDRESS)]
+
     def send_fake_data_broadcast(self, msg: str = 'Hello world!') -> None:
 
         self.info(f"Sending fake message: {msg}")
@@ -240,15 +262,18 @@ class RFSource(Node):
             if not self.device.is_open():
                 self.device.open()
 
-            p1_addr = XBee64BitAddress.from_hex_string("0013A20042646524")
-            broadcast_remote = RemoteXBeeDevice(self.device, p1_addr)#XBee64BitAddress.BROADCAST_ADDRESS)
             # Send broadcast message
             self.info(f"Sending message: {msg}")
-            self.device.send_data_async(
-                remote_xbee=broadcast_remote,
-                data=msg,
-                transmit_options=0x01
-            )
+
+            # Send message to each device
+            for ind in range(len(self.list_of_end_devices)):
+                device = self.list_of_end_devices[ind]
+                self.info(f"Sending to device {ind}: {device.get_64bit_addr()}")
+                self.device.send_data_async(
+                    remote_xbee=device,
+                    data=msg,
+                    transmit_options=0x01 # 0x01 means Disable ACK and retries
+                )
 
             # Publish message
             self.pubsub.publish(
