@@ -233,7 +233,7 @@ class RFSource(Node):
     # Send broadcast data
     @alternate_sim_func(send_fake_data_broadcast)
     @non_simulation
-    def send_data_broadcast(self, msg: str = 'Hello world!') -> None:
+    def send_data_broadcast(self, msg: str = '') -> None:
         try:
 
             # If the device is not already open, open it
@@ -246,7 +246,7 @@ class RFSource(Node):
             self.device.send_data_async(
                 remote_xbee=broadcast_remote,
                 data=msg,
-                transmit_options=0x00
+                transmit_options=0x01
             )
 
             # Publish message
