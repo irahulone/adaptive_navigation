@@ -233,7 +233,7 @@ class RFSource(Node):
     # Send broadcast data
     @alternate_sim_func(send_fake_data_broadcast)
     @non_simulation
-    def send_data_broadcast(self, msg: str = '') -> None:
+    def send_data_broadcast(self, msg: str = 'a') -> None:
         try:
 
             # If the device is not already open, open it
