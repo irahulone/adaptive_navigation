@@ -53,7 +53,7 @@ class RFReceiver(Node):
             parameters=[
                 (RFReceiver.PORT, "/dev/ttyUSB1"),
                 (RFReceiver.BAUD_RATE, 115200),
-                (RFReceiver.FREQ, 0.5),
+                (RFReceiver.FREQ, 5),
                 (RFReceiver.PUB_TOPIC, 'rssi')
             ]
         )
@@ -193,11 +193,6 @@ class RFReceiver(Node):
         except Exception as e:
             self.error(f"Error receiving RSSI: {e}")
 
-        finally:
-
-            # Close device if caught exception
-            if self.device is not None and self.device.is_open():
-                self.device.close()
             
     def get_fake_rssi_from_received_msg(self) -> None:
 

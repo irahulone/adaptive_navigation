@@ -63,7 +63,7 @@ class RFSource(Node):
             parameters=[
                 (RFSource.PORT, "/dev/ttyUSB0"),
                 (RFSource.BAUD_RATE, 115200),
-                (RFSource.FREQ, 0.5),
+                (RFSource.FREQ, 5),
                 (RFSource.PUB_TOPIC, "message"),
                 (RFSource.POWER_LEVEL, 0),
                 (RFSource.POWER_PUB_TOPIC, "power_level")
@@ -252,12 +252,7 @@ class RFSource(Node):
             # Print error
             print(f"Error: {e}")
             return False
-        
-        finally:
-
-            # Close device if caught exception
-            if self.device is not None and self.device.is_open():
-                self.device.close()
+    
     
     def set_fake_power_level(self, val):
 
@@ -313,10 +308,7 @@ class RFSource(Node):
         else:
             self.pl = int.from_bytes(pl_raw, "big")
             self.info(f"Current power level {self.pl}")
-        
-        # Close device if caught exception
-        if self.device is not None and self.device.is_open():
-            self.device.close()
+    
 
         return
 
