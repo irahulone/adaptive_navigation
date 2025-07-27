@@ -240,7 +240,8 @@ class RFSource(Node):
             if not self.device.is_open():
                 self.device.open()
 
-            broadcast_remote = RemoteXBeeDevice(self.device, XBee64BitAddress.BROADCAST_ADDRESS)
+            p1_addr = XBee64BitAddress.from_hex_string("0013A20042646524")
+            broadcast_remote = RemoteXBeeDevice(self.device, p1_addr)#XBee64BitAddress.BROADCAST_ADDRESS)
             # Send broadcast message
             self.info(f"Sending message: {msg}")
             self.device.send_data_async(
