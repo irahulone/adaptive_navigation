@@ -64,7 +64,7 @@ class RFSource(Node):
             parameters=[
                 (RFSource.PORT, "/dev/ttyUSB0"),
                 (RFSource.BAUD_RATE, 115200),
-                (RFSource.FREQ, 0.5),
+                (RFSource.FREQ, 5),
                 (RFSource.PUB_TOPIC, "message"),
                 (RFSource.POWER_LEVEL, 0),
                 (RFSource.POWER_PUB_TOPIC, "power_level")
