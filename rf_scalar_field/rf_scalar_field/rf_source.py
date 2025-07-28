@@ -64,14 +64,15 @@ class RFSource(Node):
             namespace='',
             parameters=[
                 (RFSource.PORT, "/dev/ttyUSB0"),
-                (RFSource.LIST_OF_END_DEVICES_ADDR, ["0013A2004236A91", # End Device 1
-                                                "0013A20042646524", # End Device 2
-                                                "0013A2004264607C", # End Device 3
-                                                # "0013A20042645E8A", # End Device 4
-                                                # "0013A20042645E87"  # End Device 5
+                (RFSource.LIST_OF_END_DEVICES_ADDR, [
+                                                #"0013A2004236A91", # End Device 1
+                                                "0013A20042646524", # End Device 2 - Pioneer 1
+                                                #"0013A2004264607C", # End Device 3
+                                                "0013A20042645E8A", # End Device 4 - Pioneer 2 
+                                                 "0013A20042645E87"  # End Device 5 - Pioneer 3
                                                 ]),
-                (RFSource.BAUD_RATE, 115200),
-                (RFSource.FREQ, 2),
+                (RFSource.BAUD_RATE, 230400),
+                (RFSource.FREQ, 5.0),
                 (RFSource.PUB_TOPIC, "message"),
                 (RFSource.POWER_LEVEL, 4),
                 (RFSource.POWER_PUB_TOPIC, "power_level")
@@ -268,7 +269,7 @@ class RFSource(Node):
             # Send message to each device
             for ind in range(len(self.list_of_end_devices)):
                 device = self.list_of_end_devices[ind]
-                self.info(f"Sending to device {ind}: {device.get_64bit_addr()}")
+                # self.info(f"Sending to device {ind}: {device.get_64bit_addr()}")
                 self.device.send_data_async(
                     remote_xbee=device,
                     data=msg,
