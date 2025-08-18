@@ -66,7 +66,7 @@ class SyncPublisher(Node):
                 (SyncPublisher.GPS_SUB_TOPIC, "message"), # "/p1/gps1"
                 (SyncPublisher.RSSI_SUB_TOPIC, "rssi"),
                 (SyncPublisher.CONTOUR_PUB_TOPIC, "contour"),
-                (SyncPublisher.FREQ, 2.0),
+                (SyncPublisher.FREQ, 5.0),
                 (SyncPublisher.POSE_SUB_TOPIC, "None/pose2D")
             ]
         )
