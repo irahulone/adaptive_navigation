@@ -55,7 +55,18 @@ ros2 run synchronizer collect_gps_rssi --ros-args -p gps_sub_topic:=/None/gps1
 ros2 run synchronizer collect_gps_rssi --ros-args -r __ns:=/sim
 
 ```
-3. Run the following for logging and live plotting
+3. (Archived) Run the following for logging and live plotting
 ```bash
 ros2 launch data_insights launch.py # Append the ns:=/sim if in sim
+```
+
+3B. Alternatively, run the following
+```bash
+ros2 run reference_srv gps_reference_server 
+
+ros2 run convert_pose converter --ros-args -p robot_id:=None -p disable_imu:=True
+
+ ros2 run synchronizer collect_gps_rssi --ros-args -p gps_sub_topic:=/None/gps1
+
+ros2 run data_insights live_contour_plotter 
 ```

@@ -5,6 +5,7 @@ from typing import Callable, Any, Union
 
 from sensor_msgs.msg import NavSatFix
 from std_msgs.msg import Int16
+from geometry_msgs.msg import Pose2D
 
 
 from math import nan
@@ -29,6 +30,7 @@ class SyncPublisher(Node):
     GPS_SUB_TOPIC: str = "gps_sub_topic"
     RSSI_SUB_TOPIC: str = "rssi_sub_topic"
     CONTOUR_PUB_TOPIC: str = "contour_sub_topic"
+    POSE_SUB_TOPIC: str = "pose_sub_topic"
     FREQ: str = "freq"
 
     def __init__(self):
@@ -64,7 +66,8 @@ class SyncPublisher(Node):
                 (SyncPublisher.GPS_SUB_TOPIC, "message"), # "/p1/gps1"
                 (SyncPublisher.RSSI_SUB_TOPIC, "rssi"),
                 (SyncPublisher.CONTOUR_PUB_TOPIC, "contour"),
-                (SyncPublisher.FREQ, 2.0)
+                (SyncPublisher.FREQ, 2.0),
+                (SyncPublisher.POSE_SUB_TOPIC, "None/pose2D")
             ]
         )
 
@@ -99,19 +102,26 @@ class SyncPublisher(Node):
     # Subscribes to all topics
     def subscribe_to_topics(self) -> None:
 
-        # Subscribe to GPS data
-        self.pubsub.create_subscription(
-            NavSatFix,
-            self.get(SyncPublisher.GPS_SUB_TOPIC),
-            self.extract_x_y_values,
-            10
-        )
+        # # Subscribe to GPS data
+        # self.pubsub.create_subscription(
+        #     NavSatFix,
+        #     self.get(SyncPublisher.GPS_SUB_TOPIC),
+        #     self.extract_x_y_values,
+        #     10
+        # )
 
         # Subscribe to RSSI data
         self.pubsub.create_subscription(
             Int16,
             self.get(SyncPublisher.RSSI_SUB_TOPIC),
             self.extract_z_value,
+            10
+        )
+
+        self.pubsub.create_subscription(
+            Pose2D,
+            self.get(SyncPublisher.POSE_SUB_TOPIC), 
+            self.extract_x_y_values,
             10
         )
 
@@ -158,8 +168,8 @@ class SyncPublisher(Node):
 
     # TODO
     def extract_x_y_values(self, msg) -> None:
-        self.x = msg.latitude
-        self.y = msg.longitude
+        self.x = msg.x
+        self.y = msg.y
     
     # TODO
     def extract_z_value(self, msg) -> None:
