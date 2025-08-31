@@ -25,6 +25,9 @@ class StringWrapper(str):
         return self.__class__(str + self)
     
 
+def prepend(str1: str, str2: str):
+    return str1+str2
+
 class Data:
     def __init__(self):
         self.data: List = []
@@ -180,6 +183,7 @@ class SyncPublisher(Node):
 
         # Get robot ID from parameter or environment
         robot_id = os.getenv("ROBOT_ID", "")
+        prepend_robot = partial(prepend, robot_id)
         
         super().__init__("_".join([robot_id, __name__.split('.')[-1]]))
         
@@ -188,7 +192,7 @@ class SyncPublisher(Node):
 
         # Get namespace
         self.ns: HardwareNamespace = HardwareNamespace(self.get_namespace())
-
+        self.ns.parts = [robot_id]
         # Attributes
         self.x: float = nan
         self.y: float = nan
@@ -206,13 +210,13 @@ class SyncPublisher(Node):
                 (SyncPublisher.T_NAME, 0.0),
                 # TODO: Create a topic where names can be imported 
                 # without any issues
-                (SyncPublisher.GPS_SUB_TOPIC, "message"), # "/p1/gps1"
-                (SyncPublisher.RSSI_SUB_TOPIC, "rssi"),
-                (SyncPublisher.CONTOUR_PUB_TOPIC, "contour"),
+                (SyncPublisher.GPS_SUB_TOPIC, prepend_robot("message")), # "/p1/gps1"
+                (SyncPublisher.RSSI_SUB_TOPIC, prepend_robot("rssi")),
+                (SyncPublisher.CONTOUR_PUB_TOPIC, prepend_robot("contour")),
                 (SyncPublisher.FREQ, 5.0),
-                (SyncPublisher.POSE_SUB_TOPIC, "pose2D"),
-                (SyncPublisher.DIST_PER_UNIT_RSSI_PUB_TOPIC, "dist_per_rssi"),
-                (SyncPublisher.UPDATE_FREQ_PUB_TOPIC, "rssi_freq")
+                (SyncPublisher.POSE_SUB_TOPIC, prepend_robot("pose2D")),
+                (SyncPublisher.DIST_PER_UNIT_RSSI_PUB_TOPIC, prepend_robot("dist_per_rssi")),
+                (SyncPublisher.UPDATE_FREQ_PUB_TOPIC, prepend_robot("rssi_freq"))
             ]
         )
 
@@ -277,7 +281,7 @@ class SyncPublisher(Node):
 
         # Subscribe to RSSI data
         self.pubsub.create_subscription(
-            Int16,
+            Float64,
             self.get(SyncPublisher.RSSI_SUB_TOPIC),
             self.extract_z_value,
             10
@@ -296,26 +300,22 @@ class SyncPublisher(Node):
         # Create Contour topic
         self.pubsub.create_publisher(
             Contour,
-            self.prepend(self.get(SyncPublisher.CONTOUR_PUB_TOPIC)),
+            self.get(SyncPublisher.CONTOUR_PUB_TOPIC),
             10
         )
 
         # Create Distance per unit RSSI pub topic
         self.pubsub.create_publisher(
             Float64,
-            self.prepend(self.get(SyncPublisher.DIST_PER_UNIT_RSSI_PUB_TOPIC)),
+            self.get(SyncPublisher.DIST_PER_UNIT_RSSI_PUB_TOPIC),
             10
         )
 
         # Create update frequency topic
         self.pubsub.create_publisher(
             Float64,
-            self.prepend(self.get(SyncPublisher.UPDATE_FREQ_PUB_TOPIC))
+            self.get(SyncPublisher.UPDATE_FREQ_PUB_TOPIC)
         )
-
-    # TODO: Replace with namespace builder
-    def prepend(self, topic: str) -> str:
-        return f"{self.robot_id}/{topic}"
 
     # Publish contour data
     def publish_contour(self) -> None:
@@ -339,7 +339,7 @@ class SyncPublisher(Node):
 
         # Publish contour
         self.pubsub.publish(
-            self.prepend(self.get(SyncPublisher.CONTOUR_PUB_TOPIC)),
+            self.get(SyncPublisher.CONTOUR_PUB_TOPIC),
             contour
         )
     
@@ -381,7 +381,7 @@ class SyncPublisher(Node):
             self.last_z = self.z
 
             # Publisher topic
-            self.pubsub.publish(self.prepend(self.get(SyncPublisher.DIST_PER_UNIT_RSSI_PUB_TOPIC)),
+            self.pubsub.publish(self.get(SyncPublisher.DIST_PER_UNIT_RSSI_PUB_TOPIC),
                                 Float64(data=dist_per_unit_rssi))
 
     # Create alias function for getting logger
@@ -425,7 +425,7 @@ class SyncPublisher(Node):
         self.info("~~~~~~~~~~~~~~~~~~~~~~~")
 
         # Publish RSSI freq topic
-        self.pubsub.publish(self.prepend(self.get(SyncPublisher.UPDATE_FREQ_PUB_TOPIC)),
+        self.pubsub.publish(self.get(SyncPublisher.UPDATE_FREQ_PUB_TOPIC),
                             Float64(data=freq))
 
 

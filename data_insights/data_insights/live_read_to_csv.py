@@ -8,6 +8,8 @@ from collections import defaultdict
 
 import csv
 
+import os
+
 from adaptive_navigation_interfaces.msg import Contour
 from adaptive_navigation_utilities.pubsub import PubSubManager
 from adaptive_navigation_utilities.namespace_builder import HardwareNamespace
@@ -20,14 +22,21 @@ Numeric = Union[int, float]
 class CsvReader(Node):
 
     FILE_NAME: str = 'fiename'
+    CONTOUR_SUB_TOPIC: str = 'contour_sub_topic'
+    ROBOT_ID: str = "robot_id"
 
     def __init__(self):
+
+
+        # Get robot ID from parameter or environment
+        robot_id = os.getenv("ROBOT_ID", "")
 
         # Create node
         # Note: We use the __name__ macro and
         # parse for the file name to use as
         # the node name
-        super().__init__(__name__.split('.')[-1])
+        super().__init__("_".join([robot_id, __name__.split('.')[-1]]))
+
         
         # Pubsub
         self.pubsub: PubSubManager = PubSubManager(self)
@@ -46,7 +55,9 @@ class CsvReader(Node):
         self.declare_parameters(
             namespace='', # TODO: Include parameters here??
             parameters=[
-                (CsvReader.FILE_NAME, "output.csv")
+                (CsvReader.ROBOT_ID, robot_id)
+                (CsvReader.FILE_NAME, "output.csv"),
+                (CsvReader.CONTOUR_SUB_TOPIC, "contour")
             ]
         )
         

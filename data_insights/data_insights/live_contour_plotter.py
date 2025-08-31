@@ -10,8 +10,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from typing import Callable, Any, Union
 import os
+from functools import partial
 
 from adaptive_navigation_utilities.pubsub import PubSubManager
+
+def prepend(str1: str, str2: str):
+    return str1+str2
 
 
 class ContourPlotter(Node):
@@ -23,6 +27,7 @@ class ContourPlotter(Node):
 
         # Get robot ID from parameter or environment
         robot_id = os.getenv("ROBOT_ID", "")
+        prepend_robot = partial(prepend, robot_id)
 
         super().__init__("_".join([robot_id, __name__.split('.')[-1]]))
 
@@ -34,7 +39,7 @@ class ContourPlotter(Node):
         self.declare_parameters(
             namespace='', # TODO: Include parameters here??
             parameters=[
-                (ContourPlotter.CONTOUR_SUB_TOPIC, "contour"),
+                (ContourPlotter.CONTOUR_SUB_TOPIC, prepend_robot("contour")),
                 (ContourPlotter.ROBOT_ID, robot_id)
             ]
         )
@@ -73,7 +78,7 @@ class ContourPlotter(Node):
     def create_subscriptions(self) -> None:
         self.pubsub.create_subscription(
             Contour,
-            self.prepend(self.get(ContourPlotter.CONTOUR_SUB_TOPIC)),
+            self.get(ContourPlotter.CONTOUR_SUB_TOPIC),
             self.listener_callback,
             10
         )
@@ -118,10 +123,6 @@ class ContourPlotter(Node):
 
         except Exception as e:
             self.error(f"Plot error: {e}")
-
-    # TODO: Replace with namespace builder
-    def prepend(self, topic: str) -> str:
-        return f"{self.robot_id}/{topic}"
 
 
 def main(args=None):
