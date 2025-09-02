@@ -4,6 +4,16 @@ from setuptools import find_packages, setup
 
 package_name = 'data_insights'
 
+package_dir = os.path.join(os.path.dirname(__file__), package_name)
+# Create console_scripts dynamically
+console_scripts_list = []
+for fname in os.listdir(package_dir):
+    if fname.endswith('.py') and fname != '__init__.py':
+        module_name = fname[:-3]  # remove .py
+        console_scripts_list.append(
+            f"{module_name} = {package_name}.{module_name}:main"
+        )
+
 setup(
     name=package_name,
     version='0.0.0',
@@ -24,9 +34,6 @@ setup(
     license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={
-        'console_scripts': [    
-            f"live_contour_plotter = {package_name}.live_contour_plotter:main",
-            f"live_read_to_csv = {package_name}.live_read_to_csv:main"
-        ],
+        'console_scripts': console_scripts_list
     },
 )
