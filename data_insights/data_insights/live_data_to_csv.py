@@ -6,6 +6,11 @@ from rosidl_runtime_py.utilities import get_message
 
 from rcl_interfaces.msg import SetParametersResult
 
+from geometry_msgs.msg import Twist, Pose2D
+from pioneer_interfaces.msg import ClusterInfo
+
+import array
+
 from typing import Callable, Any, List
 
 import pandas as pd
@@ -35,6 +40,68 @@ def flatten_msg(msg):
         return d
     else:
         return {"value": msg}
+
+# Recursion/Loop
+def extract_fields(msg, dict: dict, unique_slot_key: str = ""):
+    
+    # Base case
+    # if the ROS message does not have a __slots__ type
+    if not hasattr(msg, '__slots__'):
+
+        return {}
+    
+    else:
+
+        # For all the slots in the message
+        for slot in msg.__slots__:
+
+            # Get value
+            val = getattr(msg, slot)
+
+            # Base case
+            # If the msg's slot's do not contain any
+            # more subslots
+            if not hasattr(val, '__slots__'):
+
+                # Prepend slot with accumulated unique key
+                _key = unique_slot_key + "." + slot
+
+                # FOR DEBUG ONLY
+                # print(f"slot: {slot}, type val: {type(val)}")
+
+                # If data type is an array
+                if slot == "_data" and isinstance(val, array.array):
+
+                    # Create each key for each data
+                    for i, v in enumerate(val):
+                        
+                        # Create enumerated key
+                        enum_key = f"{_key}[{i}]"
+
+                        # Add key
+                        dict[enum_key] = v
+
+                # Ignore this field as it is insignificant
+                elif slot == "_check_fields": pass
+
+                # Else, if not an array type
+                else:
+                    # Add value to dictionary
+                    dict[_key] = val
+            
+            # Else, recursively call for 
+            # extract_fields until base case
+            # is reached
+            else:
+
+                # Append to key name for uniqueness from different slots
+                _unique_slot_key: str = unique_slot_key + "." + \
+                                       slot
+                
+                dict = extract_fields(val, dict, _unique_slot_key)
+            
+        return dict
+        
 
 class Recorder(Node):
 
@@ -97,6 +164,10 @@ class Recorder(Node):
         # Create timer
         self.create_timer(self.period, self.write_to_database)# lambda: pprint(self.cdict))
 
+        # DEBUG
+        # TODO: Get rid of this
+        self.create_timer(2, lambda: pprint(self.cdict))
+
         # Callback function for set parameters
         self.add_on_set_parameters_callback(self.parameters_callback)
     
@@ -137,16 +208,49 @@ class Recorder(Node):
                 self.pubsub.create_subscription(
                     type,
                     name,
-                    lambda msg, n=name: self.update_cache_dictionary(msg, n),
+                    lambda msg, n=name: self.wrapper_extract_fields(msg, n),
                     10
                 )
+
+
+    def wrapper_extract_fields(self, msg, name) -> None:
+
+        self.cdict = extract_fields(msg, self.cdict, name)
+
+    def test_subscription(self) -> None:
+        
+        self.pubsub.create_subscription(
+            Twist,
+            '/ctrl/cmd_vel',
+            lambda msg, name: self.wrapper_extract_fields(msg, '/ctrl/cmd_vel'),
+            10
+        )
+
+        self.pubsub.create_subscription(
+            Pose2D,
+            '/p1/pose2D',
+            lambda msg, name: self.wrapper_extract_fields(msg, '/p1/pose2D'),
+            10
+        ) 
+
+        self.pubsub.create_subscription(
+            ClusterInfo,
+            '/cluster_info',
+            lambda msg, name: self.wrapper_extract_fields(msg, '/cluster_info'),
+            10
+        ) 
 
 
     # Create all publishers and subscribers
     def create_publishers_and_subscribers(self):
         
         # Subscribe to all topics
-        self.subscribe_to_all_topics()
+        # TODO: Add argparse / rosparam to
+        # enable this feature
+        # self.subscribe_to_all_topics()
+
+        # Subscribe to specific topic list
+        self.test_subscription()
 
 
     # Timestamp
