@@ -19,6 +19,8 @@ from collections import defaultdict
 
 from pprint import pprint
 
+from datetime import datetime
+
 from adaptive_navigation_utilities.pubsub import PubSubManager
 
 
@@ -107,6 +109,8 @@ class Recorder(Node):
 
     SAVE_TO_FILE: str = "save_to_file"
     PERIOD: str = "period"
+    LIST_OF_TOPICS: str = "list_of_topics"
+    RECORD_ALL_TOPICS: str = "record_all_topics"
 
     def __init__(self):
 
@@ -122,13 +126,21 @@ class Recorder(Node):
             namespace='',
             parameters=[
                 (Recorder.SAVE_TO_FILE, False),
-                (Recorder.PERIOD, 0.05)
+                (Recorder.PERIOD, 0.05),
+                (Recorder.LIST_OF_TOPICS, ['/p1/pose2D',
+                                           '/cluster_info',
+                                           '/ctrl/cmd_vel'
+                                           ]
+                ),
+                (Recorder.RECORD_ALL_TOPICS, False)
             ]
         )
 
         # Save parameters as attributes
         self.save_to_file: bool = self.get(Recorder.SAVE_TO_FILE)
         self.period: float = self.get(Recorder.PERIOD)
+        self.list_of_topics: list = self.get(Recorder.LIST_OF_TOPICS)
+        self.record_all_topics: bool = self.get(Recorder.RECORD_ALL_TOPICS)
 
         # Create pubsub manager
         self.pubsub: PubSubManager = PubSubManager(self)
@@ -158,15 +170,14 @@ class Recorder(Node):
 
         # Data frame
         self.df: pd.DataFrame = pd.DataFrame(columns=self.columns)
-        self.output_name: str= f"output_{self.stamp}"
-        self.output_ext: str = ".csv"
+        self._output_name: str= f"output_{self.stamp}"
+        self._output_ext: str = ".csv"
 
         # Create timer
         self.create_timer(self.period, self.write_to_database)# lambda: pprint(self.cdict))
 
-        # DEBUG
-        # TODO: Get rid of this
-        self.create_timer(2, lambda: pprint(self.cdict))
+        # IF DEBUG:
+        self.create_timer(10, lambda: pprint(self.cdict))
 
         # Callback function for set parameters
         self.add_on_set_parameters_callback(self.parameters_callback)
@@ -217,6 +228,13 @@ class Recorder(Node):
 
         self.cdict = extract_fields(msg, self.cdict, name)
 
+        if self.use_system_clock:
+            self.cdict["stamp"] = self.stamp
+
+    def dynamically_import_subscription_type(self, topic_name: str) -> None:
+
+        return get_message(self.get_publishers_info_by_topic(topic_name)[0].topic_type)
+
     def test_subscription(self) -> None:
         
         self.pubsub.create_subscription(
@@ -240,17 +258,26 @@ class Recorder(Node):
             10
         ) 
 
+    def subscribe_to_list_of_topics(self) -> None:
+
+        for t in self.list_of_topics:
+            self.pubsub.create_subscription(
+                self.dynamically_import_subscription_type(t),
+                t,
+                lambda msg, name=t: self.wrapper_extract_fields(msg, name),
+                10
+            )
 
     # Create all publishers and subscribers
     def create_publishers_and_subscribers(self):
         
         # Subscribe to all topics
-        # TODO: Add argparse / rosparam to
-        # enable this feature
-        # self.subscribe_to_all_topics()
+        if self.record_all_topics:
+            self.subscribe_to_all_topics()
 
-        # Subscribe to specific topic list
-        self.test_subscription()
+        elif self.list_of_topics:
+            # Subscribe to specific topic list
+            self.subscribe_to_list_of_topics()
 
 
     # Timestamp
@@ -258,7 +285,10 @@ class Recorder(Node):
     def stamp(self) -> float:
 
         # Use ROS node built-in method for clock
-        return self.get_clock().now().nanoseconds
+        ns = self.get_clock().now().nanoseconds
+
+        return ns / 1e9 # In unit of seconds
+
     
     @property
     def columns(self) -> List[str]:
@@ -285,7 +315,7 @@ class Recorder(Node):
     def output(self) -> str:
 
         # Combine output name and extension
-        return self.output_name + self.output_ext
+        return self.output_name + self._output_ext
     
     @output.setter
     def output(self, name: str) -> None:
@@ -302,8 +332,19 @@ class Recorder(Node):
             self.output_name = ".".join(_list[:-1])
 
             # Get extension from last entry
-            self.output_ext = _list[-1]
+            self._output_ext = _list[-1]
 
+    @property
+    def output_name(self) -> str:
+
+        dt = datetime.fromtimestamp(self.stamp)
+        formatted = dt.strftime("%m_%d_%y_%H%M%S")
+
+        return "output_" + formatted
+
+    @output_name.setter
+    def output_name(self, output_name: str) -> str:
+        self._output_name = output_name
 
     def write_to_file(self, output: str = None) -> None:
 
@@ -311,9 +352,9 @@ class Recorder(Node):
         if output == None: output = self.output
         
         # Write to file depending on extension
-        if self.output_ext == ".csv":
+        if self._output_ext == ".csv":
             self.df.to_csv(output, index=False)
-        elif self.output_ext == ".xlsx":
+        elif self._output_ext == ".xlsx":
             self.df.to_excel(output, index=False)
         
 
