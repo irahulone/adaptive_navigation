@@ -6,9 +6,6 @@ from rosidl_runtime_py.utilities import get_message
 
 from rcl_interfaces.msg import SetParametersResult
 
-from geometry_msgs.msg import Twist, Pose2D
-from pioneer_interfaces.msg import ClusterInfo
-
 import array
 
 from typing import Callable, Any, List
@@ -111,6 +108,7 @@ class Recorder(Node):
     PERIOD: str = "period"
     LIST_OF_TOPICS: str = "list_of_topics"
     RECORD_ALL_TOPICS: str = "record_all_topics"
+    TIMEOUT: str = "timeout"
 
     def __init__(self):
 
@@ -119,6 +117,13 @@ class Recorder(Node):
         # parse for the file name to use as
         # the node name
         super().__init__(__name__.split('.')[-1])
+
+        # Add aliases for logging
+        self.debug: Callable = self.log().debug
+        self.info: Callable = self.log().info
+        self.warn: Callable = self.log().warn
+        self.error: Callable = self.log().error
+
     
         # Declare parameters provided with default params
         # if not using ros2 launch
@@ -132,7 +137,8 @@ class Recorder(Node):
                                            '/ctrl/cmd_vel'
                                            ]
                 ),
-                (Recorder.RECORD_ALL_TOPICS, False)
+                (Recorder.RECORD_ALL_TOPICS, False),
+                (Recorder.TIMEOUT, 10.0)
             ]
         )
 
@@ -141,6 +147,7 @@ class Recorder(Node):
         self.period: float = self.get(Recorder.PERIOD)
         self.list_of_topics: list = self.get(Recorder.LIST_OF_TOPICS)
         self.record_all_topics: bool = self.get(Recorder.RECORD_ALL_TOPICS)
+        self.timeout: float = self.get(Recorder.TIMEOUT)
 
         # Create pubsub manager
         self.pubsub: PubSubManager = PubSubManager(self)
@@ -161,23 +168,21 @@ class Recorder(Node):
         if self.use_system_clock:
             self.cdict["stamp"] = None
 
-
-        # Add aliases for logging
-        self.debug: Callable = self.log().debug
-        self.info: Callable = self.log().info
-        self.warn: Callable = self.log().warn
-        self.error: Callable = self.log().error
-
         # Data frame
         self.df: pd.DataFrame = pd.DataFrame(columns=self.columns)
         self._output_name: str= f"output_{self.stamp}"
         self._output_ext: str = ".csv"
+
+        # Polling for last msg received
+        self.last_msg_received_timestamp: float = self.stamp
 
         # Create timer
         self.create_timer(self.period, self.write_to_database)# lambda: pprint(self.cdict))
 
         # IF DEBUG:
         self.create_timer(10, lambda: pprint(self.cdict))
+
+        self.create_timer(self.timeout, self.check_for_timeout)
 
         # Callback function for set parameters
         self.add_on_set_parameters_callback(self.parameters_callback)
@@ -228,12 +233,21 @@ class Recorder(Node):
 
         self.cdict = extract_fields(msg, self.cdict, name)
 
+        # Update stamp
         if self.use_system_clock:
             self.cdict["stamp"] = self.stamp
 
-    def dynamically_import_subscription_type(self, topic_name: str) -> None:
+        # Update poll for timeout
+        self.last_msg_received_timestamp = self.stamp
 
-        return get_message(self.get_publishers_info_by_topic(topic_name)[0].topic_type)
+    def dynamically_import_subscription_type(self, topic_name: str) -> Any:
+
+        try:
+            msg_type = get_message(self.get_publishers_info_by_topic(topic_name)[0].topic_type)
+            return msg_type
+        except:
+            self.info("Check if topic is running!")
+
 
     def test_subscription(self) -> None:
         
@@ -398,7 +412,16 @@ class Recorder(Node):
 
         return SetParametersResult(successful=True)
             
+    def check_for_timeout(self) -> None:
 
+        if abs(self.stamp - self.last_msg_received_timestamp) > self.timeout:
+            self.info(f"No messages received in {self.timeout} seconds. Saving and closing now.")
+
+            # Write to file
+            self.write_to_file()
+
+            # Shutdown
+            rclpy.shutdown()
 
     # Crete alias function for common ROS functions
     def get(self, param) -> Any:
