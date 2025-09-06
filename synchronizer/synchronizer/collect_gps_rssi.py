@@ -212,7 +212,7 @@ class SyncPublisher(Node):
                 # without any issues
                 (SyncPublisher.GPS_SUB_TOPIC, prepend_robot("message")), # "/p1/gps1"
                 (SyncPublisher.RSSI_SUB_TOPIC, prepend_robot("rssi")),
-                (SyncPublisher.CONTOUR_PUB_TOPIC, prepend_robot("contour")),
+                (SyncPublisher.CONTOUR_PUB_TOPIC, "contour"),
                 (SyncPublisher.FREQ, 5.0),
                 (SyncPublisher.POSE_SUB_TOPIC, prepend_robot("pose2D")),
                 (SyncPublisher.DIST_PER_UNIT_RSSI_PUB_TOPIC, prepend_robot("dist_per_rssi")),
