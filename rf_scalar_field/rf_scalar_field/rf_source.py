@@ -65,13 +65,14 @@ class RFSource(Node):
             parameters=[
                 (RFSource.PORT, "/dev/ttyUSB0"),
                 (RFSource.LIST_OF_END_DEVICES_ADDR, [
-                                                #"0013A2004236A91", # End Device 1
-                                                "0013A20042646524", # End Device 2 - Pioneer 1
+                                                "0013A200426EE7F0"
+                                                # "0013A2004236A91", # End Device 1
+                                                # "0013A20042646524", # End Device 2 - Pioneer 1
                                                 #"0013A2004264607C", # End Device 3
-                                                "0013A20042645E8A", # End Device 4 - Pioneer 2 
-                                                 "0013A20042645E87"  # End Device 5 - Pioneer 3
+                                                # "0013A20042645E8A", # End Device 4 - Pioneer 2 
+                                                #  "0013A20042645E87"  # End Device 5 - Pioneer 3
                                                 ]),
-                (RFSource.BAUD_RATE, 230400),
+                (RFSource.BAUD_RATE, 115200),
                 (RFSource.FREQ, 5.0),
                 (RFSource.PUB_TOPIC, "message"),
                 (RFSource.POWER_LEVEL, 4),
