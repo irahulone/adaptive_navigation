@@ -65,8 +65,11 @@ class RFSource(Node):
             parameters=[
                 (RFSource.PORT, "/dev/ttyUSB0"),
                 (RFSource.LIST_OF_END_DEVICES_ADDR, [
-                                                "0013A200426EE7F0", # XBee RF 900 on Pioneer 2
-                                                "0013A20042497695" # XBee Modem on Pioneer 3
+                                                #"0013A200426EE7F0", # XBee RF 900 on Pioneer 2
+                                                #"0013A20042497695", # XBee Modem on Pioneer 3
+                                                "0013A200426EE680",  # XBee RF 900
+                                                "0013A200426EE7F0",  # XBee RF 900
+                                                "0013A200426EE6A0",  # XBee RF 900
                                                 # "0013A2004236A91", # End Device 1
                                                 # "0013A20042646524", # End Device 2 - Pioneer 1
                                                 #"0013A2004264607C", # End Device 3

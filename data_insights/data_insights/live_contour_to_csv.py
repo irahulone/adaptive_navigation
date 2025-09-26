@@ -55,7 +55,7 @@ class CsvReader(Node):
         self.declare_parameters(
             namespace='', # TODO: Include parameters here??
             parameters=[
-                (CsvReader.ROBOT_ID, robot_id)
+                (CsvReader.ROBOT_ID, ROBOT_ID),
                 (CsvReader.FILE_NAME, "output.csv"),
                 (CsvReader.CONTOUR_SUB_TOPIC, "contour")
             ]
