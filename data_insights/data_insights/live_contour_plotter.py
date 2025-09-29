@@ -27,7 +27,7 @@ class ContourPlotter(Node):
 
         # Get robot ID from parameter or environment
         robot_id = os.getenv("ROBOT_ID", "")
-        prepend_robot = partial(prepend, robot_id)
+        prepend_robot = partial(prepend, robot_id + "/")
 
         super().__init__("_".join([robot_id, __name__.split('.')[-1]]))
 
@@ -39,7 +39,7 @@ class ContourPlotter(Node):
         self.declare_parameters(
             namespace='', # TODO: Include parameters here??
             parameters=[
-                (ContourPlotter.CONTOUR_SUB_TOPIC, prepend_robot("contour")),
+                (ContourPlotter.CONTOUR_SUB_TOPIC, "contour")#prepend_robot("contour")),
                 (ContourPlotter.ROBOT_ID, robot_id)
             ]
         )

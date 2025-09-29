@@ -183,7 +183,7 @@ class SyncPublisher(Node):
 
         # Get robot ID from parameter or environment
         robot_id = os.getenv("ROBOT_ID", "")
-        prepend_robot = partial(prepend, robot_id)
+        prepend_robot = partial(prepend, robot_id + "/")
         
         super().__init__("_".join([robot_id, __name__.split('.')[-1]]))
         
@@ -196,7 +196,7 @@ class SyncPublisher(Node):
         # Attributes
         self.x: float = nan
         self.y: float = nan
-        self.z: int = 0 
+        self.z: float = nan 
     
         # Declare parameters provided with default params
         # if not using ros2 launch
