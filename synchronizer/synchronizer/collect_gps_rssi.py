@@ -183,9 +183,14 @@ class SyncPublisher(Node):
 
         # Get robot ID from parameter or environment
         robot_id = os.getenv("ROBOT_ID", "")
-        prepend_robot = partial(prepend, robot_id + "/")
-        
         super().__init__("_".join([robot_id, __name__.split('.')[-1]]))
+
+        # Declare robot_id param first before the other
+        # (dependent) params
+        self.declare_parameter(SyncPublisher.ROBOT_ID, robot_id)
+        self.robot_id = self.get(SyncPublisher.ROBOT_ID)
+        prepend_robot = partial(prepend, self.robot_id + "/")
+        
         
         # Pubsub
         self.pubsub: PubSubManager = PubSubManager(self)
@@ -203,7 +208,6 @@ class SyncPublisher(Node):
         self.declare_parameters(
             namespace='', # TODO: Include parameters here??
             parameters=[
-                (SyncPublisher.ROBOT_ID, robot_id),
                 (SyncPublisher.X_NAME, 0.0),
                 (SyncPublisher.Y_NAME, 0.0),
                 (SyncPublisher.Z_NAME, 0.0),
@@ -301,14 +305,14 @@ class SyncPublisher(Node):
         self.pubsub.create_publisher(
             Contour,
             self.get(SyncPublisher.CONTOUR_PUB_TOPIC),
-            10
+            30
         )
 
         # Create Distance per unit RSSI pub topic
         self.pubsub.create_publisher(
             Float64,
             self.get(SyncPublisher.DIST_PER_UNIT_RSSI_PUB_TOPIC),
-            10
+            30
         )
 
         # Create update frequency topic

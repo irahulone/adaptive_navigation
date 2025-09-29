@@ -14,20 +14,17 @@ from functools import partial
 
 from adaptive_navigation_utilities.pubsub import PubSubManager
 
-def prepend(str1: str, str2: str):
-    return str1+str2
-
 
 class ContourPlotter(Node):
 
     CONTOUR_SUB_TOPIC: str = "contour_sub_topic"
     ROBOT_ID: str = "robot_id"
+    SHOW_LATEST: str = "show_latest"
 
     def __init__(self):
 
         # Get robot ID from parameter or environment
         robot_id = os.getenv("ROBOT_ID", "")
-        prepend_robot = partial(prepend, robot_id + "/")
 
         super().__init__("_".join([robot_id, __name__.split('.')[-1]]))
 
@@ -39,8 +36,9 @@ class ContourPlotter(Node):
         self.declare_parameters(
             namespace='', # TODO: Include parameters here??
             parameters=[
-                (ContourPlotter.CONTOUR_SUB_TOPIC, "contour")#prepend_robot("contour")),
-                (ContourPlotter.ROBOT_ID, robot_id)
+                (ContourPlotter.CONTOUR_SUB_TOPIC, "contour"),
+                (ContourPlotter.ROBOT_ID, robot_id),
+                (ContourPlotter.SHOW_LATEST, False)
             ]
         )
 
@@ -48,6 +46,7 @@ class ContourPlotter(Node):
         # Note: Parameters are at the node level
         #       while attributes are the class level  
         self.robot_id = self.get(ContourPlotter.ROBOT_ID)
+        self.show_latest = self.get(ContourPlotter.SHOW_LATEST)
 
         # Create publish topics
         self.create_subscriptions()
@@ -80,7 +79,7 @@ class ContourPlotter(Node):
             Contour,
             self.get(ContourPlotter.CONTOUR_SUB_TOPIC),
             self.listener_callback,
-            10
+            30
         )
 
     # Create alias function for getting logger
@@ -106,9 +105,14 @@ class ContourPlotter(Node):
             return
 
         x, y, z = self.latest_data
-        self.x.append(x)
-        self.y.append(y)
-        self.z.append(z)
+        if self.show_latest:
+            self.x = [x]
+            self.y = [y]
+            self.z = [z]
+        else:
+            self.x.append(x)
+            self.y.append(y)
+            self.z.append(z)
 
 
         try:
