@@ -63,7 +63,7 @@ class RFSource(Node):
         self.declare_parameters(
             namespace='',
             parameters=[
-                (RFSource.PORT, "/dev/ttyUSB0"),
+                (RFSource.PORT, "/dev/xbee"),
                 (RFSource.LIST_OF_END_DEVICES_ADDR, [
                                                 #"0013A200426EE7F0", # XBee RF 900 on Pioneer 2
                                                 #"0013A20042497695", # XBee Modem on Pioneer 3

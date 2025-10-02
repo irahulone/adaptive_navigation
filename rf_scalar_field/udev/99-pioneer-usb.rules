@@ -1,0 +1,3 @@
+# XBee device (FT232, serial-specific)
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="A28G60W7", SYMLINK+="xbee", MODE="0666"
+
